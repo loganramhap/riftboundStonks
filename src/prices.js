@@ -57,9 +57,11 @@ export async function fetchCurrentPrices() {
     if (!set.pricing_url) continue;
 
     const [productData, pricingData] = await Promise.all([
-      get(`/${CAT}/sets/${set.id}`),
-      get(`/${CAT}/sets/${set.id}/pricing`),
+      get(`/${CAT}/sets/${set.id}`).catch(() => null),
+      get(`/${CAT}/sets/${set.id}/pricing`).catch(() => null),
     ]);
+
+    if (!productData || !pricingData) continue;
 
     const productMap = {};
     for (const p of productData.products ?? []) {
