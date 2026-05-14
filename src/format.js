@@ -35,7 +35,15 @@ function priceRows(cards) {
     .join('\n');
 }
 
-export function buildEmbeds({ movers24hUp, movers24hDown, movers7d, movers30d, topPriced }) {
+const RARITY_EMOJI = {
+  Epic: '👑',
+  Showcase: '✨',
+  Rare: '💎',
+  Uncommon: '🔷',
+  Common: '⬜',
+};
+
+export function buildEmbeds({ movers24hUp, movers24hDown, movers7d, movers30d, topPriced, topByRarity }) {
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const embeds = [];
 
@@ -67,7 +75,7 @@ export function buildEmbeds({ movers24hUp, movers24hDown, movers7d, movers30d, t
           inline: true,
         },
       )
-      .setFooter({ text: 'Prices sourced from JustTCG · Updates every 6 hours' })
+      .setFooter({ text: 'Prices sourced from TCGTracking · Updates every 24 hours' })
       .setTimestamp()
   );
 
@@ -78,8 +86,27 @@ export function buildEmbeds({ movers24hUp, movers24hDown, movers7d, movers30d, t
         .setTitle('💎 Top 5 Most Expensive Cards')
         .setColor(GOLD)
         .setDescription(priceRows(topPriced))
-        .setFooter({ text: 'Prices sourced from JustTCG · Updates every 6 hours' })
+        .setFooter({ text: 'Prices sourced from TCGTracking · Updates every 24 hours' })
     );
+  }
+
+  // --- Top by rarity embed ---
+  if (topByRarity?.length) {
+    const rarityEmbed = new EmbedBuilder()
+      .setTitle('🏆 Top Cards by Rarity')
+      .setColor(GOLD)
+      .setFooter({ text: 'Prices sourced from TCGTracking · Updates every 24 hours' });
+
+    for (const { rarity, cards } of topByRarity) {
+      const emoji = RARITY_EMOJI[rarity] ?? '🃏';
+      rarityEmbed.addFields({
+        name: `${emoji} ${rarity}`,
+        value: priceRows(cards),
+        inline: true,
+      });
+    }
+
+    embeds.push(rarityEmbed);
   }
 
   return embeds;

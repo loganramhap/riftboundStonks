@@ -10,6 +10,7 @@ import {
 import cron from 'node-cron';
 import { mkdirSync } from 'fs';
 import { generateReport } from './report.js';
+import { snapshotPrices } from './prices.js';
 import { getGuildChannel, setGuildChannel, removeGuild, getAllGuilds } from './store.js';
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
@@ -17,8 +18,8 @@ const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const TEST_GUILD_ID = process.env.TEST_GUILD_ID ?? null; // optional: instant command registration for testing
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE ?? '0 9 * * *';
 
-if (!DISCORD_TOKEN || !CLIENT_ID || !process.env.JUSTTCG_API_KEY) {
-  console.error('Missing env vars: DISCORD_TOKEN, DISCORD_CLIENT_ID, JUSTTCG_API_KEY');
+if (!DISCORD_TOKEN || !CLIENT_ID) {
+  console.error('Missing env vars: DISCORD_TOKEN, DISCORD_CLIENT_ID');
   process.exit(1);
 }
 
@@ -151,8 +152,14 @@ function splitMessage(text, maxLength) {
 
 client.once('clientReady', () => {
   console.log(`[bot] Logged in as ${client.user.tag}`);
+
+  // Snapshot prices at 8am UTC, report posts at 9am UTC
+  cron.schedule('0 8 * * *', snapshotPrices, { timezone: 'UTC' });
   cron.schedule(CRON_SCHEDULE, postDailyReportToAll, { timezone: 'UTC' });
-  console.log(`[bot] Scheduled: ${CRON_SCHEDULE} UTC`);
+  console.log(`[bot] Scheduled: snapshot 08:00 UTC, report ${CRON_SCHEDULE} UTC`);
+
+  // Take an initial snapshot on startup if none exists for today
+  snapshotPrices().catch((err) => console.error('[bot] Initial snapshot failed:', err.message));
 });
 
 client.login(DISCORD_TOKEN);
