@@ -66,7 +66,8 @@ export async function fetchCurrentPrices() {
     const productMap = {};
     for (const p of productData.products ?? []) {
       if (SKIP_NAME.test(p.name)) continue;
-      productMap[p.id] = { name: p.name, set: set.name, rarity: p.rarity ?? null };
+      if (!p.rarity) continue; // sealed products have no rarity
+      productMap[p.id] = { name: p.name, set: set.name, rarity: p.rarity };
     }
 
     for (const [productId, priceInfo] of Object.entries(pricingData.prices ?? {})) {
