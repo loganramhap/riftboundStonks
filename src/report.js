@@ -1,5 +1,5 @@
 import { getTodaySnapshot, getSnapshotDaysAgo } from './prices.js';
-import { buildEmbeds } from './format.js';
+import { buildPages } from './format.js';
 
 function pctChange(current, previous) {
   if (previous == null || previous === 0) return null;
@@ -51,7 +51,7 @@ export async function generateReport() {
 
   console.log('[report] Building embeds...');
 
-  return buildEmbeds({
+  return buildPages({
     movers24hUp: sortDesc(movers24h.filter((c) => c.change24h > 0), 'change24h').slice(0, 5),
     movers24hDown: sortAsc(movers24h.filter((c) => c.change24h < 0), 'change24h').slice(0, 5),
     movers7d: sortDesc(movers7d.filter((c) => c.change7d > 0), 'change7d').slice(0, 5),

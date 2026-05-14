@@ -10,6 +10,7 @@ import {
 import cron from 'node-cron';
 import { mkdirSync } from 'fs';
 import { generateReport } from './report.js';
+import { pageMessage } from './format.js';
 import { snapshotPrices } from './prices.js';
 import { getGuildChannel, setGuildChannel, removeGuild, getAllGuilds } from './store.js';
 
@@ -73,10 +74,23 @@ async function postReportToGuild(guildId) {
     const channel = await client.channels.fetch(channelId);
     if (!channel?.isTextBased()) return;
 
-    const embeds = await generateReport();
-    for (const embed of embeds) {
-      await channel.send({ embeds: [embed] });
-    }
+    const pages = await generateReport();
+    let index = 0;
+    const msg = await channel.send(pageMessage(pages, index));
+
+    // Listen for button clicks for 10 minutes
+    const collector = msg.createMessageComponentCollector({ time: 10 * 60 * 1000 });
+    collector.on('collect', async (btn) => {
+      await btn.deferUpdate();
+      if (btn.customId === 'prev') index = Math.max(0, index - 1);
+      if (btn.customId === 'next') index = Math.min(pages.length - 1, index + 1);
+      await msg.edit(pageMessage(pages, index));
+    });
+    collector.on('end', () => {
+      // Disable buttons when collector expires
+      msg.edit({ components: [] }).catch(() => {});
+    });
+
     console.log(`[bot] Report posted to guild ${guildId}`);
   } catch (err) {
     console.error(`[bot] Failed to post to guild ${guildId}:`, err.message);
@@ -115,10 +129,21 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'riftbound-report') {
     await interaction.deferReply({ ephemeral: true });
     try {
-      const embeds = await generateReport();
-      for (const embed of embeds) {
-        await interaction.channel.send({ embeds: [embed] });
-      }
+      const pages = await generateReport();
+      let index = 0;
+      const msg = await interaction.channel.send(pageMessage(pages, index));
+
+      const collector = msg.createMessageComponentCollector({ time: 10 * 60 * 1000 });
+      collector.on('collect', async (btn) => {
+        await btn.deferUpdate();
+        if (btn.customId === 'prev') index = Math.max(0, index - 1);
+        if (btn.customId === 'next') index = Math.min(pages.length - 1, index + 1);
+        await msg.edit(pageMessage(pages, index));
+      });
+      collector.on('end', () => {
+        msg.edit({ components: [] }).catch(() => {});
+      });
+
       await interaction.editReply({ content: '✅ Report posted!' });
     } catch (err) {
       console.error('[bot] /riftbound-report failed:', err);

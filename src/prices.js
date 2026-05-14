@@ -12,7 +12,7 @@ const DATA_PATH = './data/prices.json';
 const KEEP_DAYS = 31;
 
 // Subtypes we care about — skip sealed product variants
-const SKIP_NAME = /booster|display case|bundle|sealed|pack|box/i;
+const SKIP_NAME = /booster|display case|bundle|sealed|pack|box|\(Metal\)|\(Signature\)|\(Ultimate\)/i;
 const SKIP_SUBTYPE = /booster|bundle|box|sealed/i;
 
 async function get(path) {

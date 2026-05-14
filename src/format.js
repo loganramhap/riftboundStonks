@@ -1,10 +1,10 @@
-import { EmbedBuilder } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
-const GOLD = 0xC89B3C; // Riftbound-ish gold colour
+const GOLD = 0xC89B3C;
 
 function price(val) {
   if (val == null) return 'N/A';
-  return `$${Number(val).toFixed(2)}`;
+  return `${Number(val).toFixed(2)}`;
 }
 
 function change(val) {
@@ -43,71 +43,75 @@ const RARITY_EMOJI = {
   Common: '⬜',
 };
 
-export function buildEmbeds({ movers24hUp, movers24hDown, movers7d, movers30d, topPriced, topByRarity }) {
-  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const embeds = [];
+const FOOTER = 'Prices sourced from TCGTracking · Updates every 24 hours';
 
-  // --- Movers embed ---
-  embeds.push(
+export function buildPages({ movers24hUp, movers24hDown, movers7d, movers30d, topPriced, topByRarity }) {
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const pages = [];
+
+  // Page 1 — Movers
+  pages.push(
     new EmbedBuilder()
       .setTitle(`📊 Riftbound Market Report — ${today}`)
       .setColor(GOLD)
       .addFields(
-        {
-          name: '🔥 1-Day Gainers',
-          value: moverRows(movers24hUp, 'change24h'),
-          inline: true,
-        },
-        {
-          name: '🧊 1-Day Losers',
-          value: moverRows(movers24hDown, 'change24h'),
-          inline: true,
-        },
-        { name: '\u200b', value: '\u200b', inline: false }, // spacer
-        {
-          name: '📅 7-Day Movers',
-          value: moverRows(movers7d, 'change7d'),
-          inline: true,
-        },
-        {
-          name: '🗓️ 30-Day Movers',
-          value: moverRows(movers30d, 'change30d'),
-          inline: true,
-        },
+        { name: '🔥 1-Day Gainers', value: moverRows(movers24hUp, 'change24h'), inline: true },
+        { name: '🧊 1-Day Losers', value: moverRows(movers24hDown, 'change24h'), inline: true },
+        { name: '\u200b', value: '\u200b', inline: false },
+        { name: '📅 7-Day Movers', value: moverRows(movers7d, 'change7d'), inline: true },
+        { name: '🗓️ 30-Day Movers', value: moverRows(movers30d, 'change30d'), inline: true },
       )
-      .setFooter({ text: 'Prices sourced from TCGTracking · Updates every 24 hours' })
       .setTimestamp()
   );
 
-  // --- Top priced embed ---
+  // Page 2 — Top priced
   if (topPriced?.length) {
-    embeds.push(
+    pages.push(
       new EmbedBuilder()
         .setTitle('💎 Top 5 Most Expensive Cards')
         .setColor(GOLD)
         .setDescription(priceRows(topPriced))
-        .setFooter({ text: 'Prices sourced from TCGTracking · Updates every 24 hours' })
     );
   }
 
-  // --- Top by rarity embed ---
+  // Page 3 — Top by rarity
   if (topByRarity?.length) {
     const rarityEmbed = new EmbedBuilder()
       .setTitle('🏆 Top Cards by Rarity')
-      .setColor(GOLD)
-      .setFooter({ text: 'Prices sourced from TCGTracking · Updates every 24 hours' });
+      .setColor(GOLD);
 
     for (const { rarity, cards } of topByRarity) {
-      const emoji = RARITY_EMOJI[rarity] ?? '🃏';
       rarityEmbed.addFields({
-        name: `${emoji} ${rarity}`,
+        name: `${RARITY_EMOJI[rarity] ?? '🃏'} ${rarity}`,
         value: priceRows(cards),
         inline: true,
       });
     }
 
-    embeds.push(rarityEmbed);
+    pages.push(rarityEmbed);
   }
 
-  return embeds;
+  // Stamp footer + page number on each
+  pages.forEach((p, i) =>
+    p.setFooter({ text: `Page ${i + 1}/${pages.length} · ${FOOTER}` })
+  );
+
+  return pages;
+}
+
+export function pageMessage(pages, index) {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('prev')
+      .setLabel('◀ Prev')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(index === 0),
+    new ButtonBuilder()
+      .setCustomId('next')
+      .setLabel('Next ▶')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(index === pages.length - 1),
+  );
+
+  return { embeds: [pages[index]], components: [row] };
 }
