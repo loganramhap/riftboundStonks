@@ -131,17 +131,18 @@ client.on('interactionCreate', async (interaction) => {
     try {
       const pages = await generateReport();
       let index = 0;
-      const msg = await interaction.editReply(pageMessage(pages, index));
+      await interaction.editReply(pageMessage(pages, index));
+      const msg = await interaction.fetchReply();
 
       const collector = msg.createMessageComponentCollector({ time: 10 * 60 * 1000 });
       collector.on('collect', async (btn) => {
         await btn.deferUpdate();
         if (btn.customId === 'prev') index = Math.max(0, index - 1);
         if (btn.customId === 'next') index = Math.min(pages.length - 1, index + 1);
-        await msg.edit(pageMessage(pages, index));
+        await interaction.editReply(pageMessage(pages, index));
       });
       collector.on('end', () => {
-        msg.edit({ components: [] }).catch(() => {});
+        interaction.editReply({ components: [] }).catch(() => {});
       });
     } catch (err) {
       console.error('[bot] /riftbound-report failed:', err);
