@@ -127,12 +127,11 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   if (commandName === 'riftbound-report') {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     try {
-      const channel = await client.channels.fetch(interaction.channelId);
       const pages = await generateReport();
       let index = 0;
-      const msg = await channel.send(pageMessage(pages, index));
+      const msg = await interaction.editReply(pageMessage(pages, index));
 
       const collector = msg.createMessageComponentCollector({ time: 10 * 60 * 1000 });
       collector.on('collect', async (btn) => {
@@ -144,8 +143,6 @@ client.on('interactionCreate', async (interaction) => {
       collector.on('end', () => {
         msg.edit({ components: [] }).catch(() => {});
       });
-
-      await interaction.editReply({ content: '✅ Report posted!' });
     } catch (err) {
       console.error('[bot] /riftbound-report failed:', err);
       await interaction.editReply({ content: `❌ Failed to generate report: ${err.message}` });
