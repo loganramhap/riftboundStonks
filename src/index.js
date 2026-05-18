@@ -129,9 +129,10 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'riftbound-report') {
     await interaction.deferReply({ ephemeral: true });
     try {
+      const channel = await client.channels.fetch(interaction.channelId);
       const pages = await generateReport();
       let index = 0;
-      const msg = await interaction.channel.send(pageMessage(pages, index));
+      const msg = await channel.send(pageMessage(pages, index));
 
       const collector = msg.createMessageComponentCollector({ time: 10 * 60 * 1000 });
       collector.on('collect', async (btn) => {
